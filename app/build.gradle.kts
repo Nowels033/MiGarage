@@ -68,6 +68,7 @@ dependencies {
 
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Navegación / ViewModel
     implementation("androidx.navigation:navigation-compose:2.8.3")
