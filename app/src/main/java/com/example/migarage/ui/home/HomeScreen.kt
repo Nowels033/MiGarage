@@ -1,14 +1,126 @@
 package com.example.migarage.ui.home
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.migarage.model.Car
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.auth.FirebaseAuth
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    onAddCar: (() -> Unit)? = null,
+    vm: HomeViewModel = viewModel()
+) {
+    val state by vm.state.collectAsState()
+    val context = LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
+
+    val gso = remember { GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build() }
+    val gsc = remember { GoogleSignIn.getClient(context, gso) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("MiGarage") },
+                actions = {
+                    IconButton(onClick = {
+                        auth.signOut()
+                        gsc.signOut()
+
+                    }) {
+                        Icon(Icons.Default.Logout, contentDescription = "Cerrar sesión")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { onAddCar?.invoke() }) {
+                Icon(Icons.Default.Add, contentDescription = "Añadir coche")
+            }
+        }
+    ) { inner ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(inner)
+        ) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (state.photoUrl != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(state.photoUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Foto de perfil",
+                        modifier = Modifier.size(48.dp).clip(CircleShape)
+                    )
+                } else {
+                    Image(imageVector = Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(48.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(state.displayName.ifBlank { "Usuario" }, style = MaterialTheme.typography.titleMedium)
+                    Text("Tus coches", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            when {
+                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                state.cars.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Aún no tienes coches. Pulsa + para añadir 🚗") }
+                else -> {
+                    LazyColumn(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(state.cars) { car -> CarCard(car) }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
-fun HomeScreen() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("✅ Sesión iniciada. Bienvenido a MiGarage 🚗")
+private fun CarCard(car: Car) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { /* TODO: detalle/editar */ },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("${car.brand} ${car.model}", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Text("Matrícula: ${car.plate}", style = MaterialTheme.typography.bodyMedium)
+            Text("Km: ${car.currentKm}", style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
