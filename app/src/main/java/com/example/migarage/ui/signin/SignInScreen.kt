@@ -85,10 +85,10 @@ fun SignInScreen(
                     enter = fadeIn() + scaleIn()
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.logo_migarage),
+                        painter = painterResource(id = R.drawable.logo_migarage2),
                         contentDescription = "Logo MiGarage",
                         modifier = Modifier
-                            .size(160.dp)
+                            .size(400.dp)
                             .padding(bottom = 24.dp),
                         contentScale = ContentScale.Fit
                     )
@@ -122,7 +122,7 @@ fun SignInScreen(
                         .height(56.dp)
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.logo_migarage),
+                        painter = painterResource(id = R.drawable.ic_google_logo),
                         contentDescription = "Google logo",
                         modifier = Modifier.size(24.dp)
                     )
@@ -143,3 +143,4 @@ fun SignInScreen(
         }
     }
 }
+
