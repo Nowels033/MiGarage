@@ -80,7 +80,7 @@ dependencies {
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
-    // Imágenes (foto de perfil)
+    // Imagenes (foto de perfil)
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Navegación / ViewModel

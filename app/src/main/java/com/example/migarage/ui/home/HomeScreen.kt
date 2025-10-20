@@ -22,6 +22,9 @@ import com.example.migarage.model.Car
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
+import coil.compose.AsyncImage
+import androidx.compose.ui.res.painterResource
+import com.example.migarage.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,11 +146,22 @@ private fun CarCard(car: Car, onClick: () -> Unit = {}) {
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text("${car.brand} ${car.model}", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
-            Text("Matrícula: ${car.plate}", style = MaterialTheme.typography.bodyMedium)
-            Text("Km: ${car.currentKm}", style = MaterialTheme.typography.bodyMedium)
+        Row(Modifier.padding(16.dp)) {
+            AsyncImage(
+                model = car.imageUrl,
+                contentDescription = "Foto coche",
+                modifier = Modifier.size(64.dp),
+                placeholder = painterResource(R.drawable.ic_car_placeholder),
+                error = painterResource(R.drawable.ic_car_placeholder),
+                fallback = painterResource(R.drawable.ic_car_placeholder)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("${car.brand} ${car.model}", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
+                Text("Matrícula: ${car.plate}", style = MaterialTheme.typography.bodyMedium)
+                Text("Km: ${car.currentKm}", style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }
