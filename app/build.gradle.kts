@@ -55,6 +55,7 @@ dependencies {
 
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.compose.foundation)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
@@ -70,7 +71,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
 
-    // ✅ Para usar `Tasks.await()` con Firebase (lo usamos en el repo)
+    implementation("com.google.firebase:firebase-storage-ktx")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
     // Recomendado: coroutines en Android

@@ -8,14 +8,22 @@ class AddCarViewModel(
     private val repo: CarRepository = CarRepository()
 ) : ViewModel() {
 
-    suspend fun saveCar(brand: String, model: String, plate: String, km: Int): Boolean {
-        return try {
-            repo.addCar(
-                Car(brand = brand, model = model, plate = plate, currentKm = km)
+    // suspend para esperar a Firestore y decidir cuándo navegar
+    suspend fun saveCar(
+        brand: String,
+        model: String,
+        plate: String,
+        km: Int
+    ): Boolean = try {
+        repo.addCar(
+            Car(
+                brand = brand,
+                model = model,
+                plate = plate,
+                currentKm = km
             )
-            true
-        } catch (_: Exception) {
-            false
-        }
-    }
+        )
+        true
+    } catch (_: Exception) { false }
 }
+

@@ -13,24 +13,15 @@ class CarRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
-    private fun carsRef(uid: String) = db.collection("users")
-        .document(uid)
-        .collection("cars")
+    private fun carsRef(uid: String) = db.collection("users").document(uid).collection("cars")
 
     fun listenCars(): Flow<List<Car>> = callbackFlow {
         val uid = auth.currentUser?.uid
-        if (uid == null) {
-            trySend(emptyList())
-            close() // cerramos limpio si no hay usuario (tras logout)
-            return@callbackFlow
-        }
+        if (uid == null) { trySend(emptyList()); close(); return@callbackFlow }
 
         val reg = carsRef(uid).orderBy("brand", Query.Direction.ASCENDING)
             .addSnapshotListener { snap, err ->
-                if (err != null) {
-                    trySend(emptyList())
-                    return@addSnapshotListener
-                }
+                if (err != null) { trySend(emptyList()); return@addSnapshotListener }
                 val list = snap?.documents?.map { d ->
                     Car(
                         id = d.id,
@@ -48,11 +39,39 @@ class CarRepository(
     suspend fun addCar(car: Car) {
         val uid = requireNotNull(auth.currentUser?.uid) { "Usuario no autenticado" }
         val data = mapOf(
-            "brand" to car.brand,
-            "model" to car.model,
-            "plate" to car.plate,
-            "currentKm" to car.currentKm
+            "brand" to car.brand, "model" to car.model,
+            "plate" to car.plate, "currentKm" to car.currentKm
         )
         carsRef(uid).add(data).await()
     }
+
+    suspend fun getCar(carId: String): Car? {
+        val uid = requireNotNull(auth.currentUser?.uid) { "Usuario no autenticado" }
+        val doc = carsRef(uid).document(carId).get().await()
+        return if (doc.exists()) {
+            Car(
+                id = doc.id,
+                brand = doc.getString("brand") ?: "",
+                model = doc.getString("model") ?: "",
+                plate = doc.getString("plate") ?: "",
+                currentKm = (doc.getLong("currentKm") ?: 0L).toInt()
+            )
+        } else null
+    }
+
+    suspend fun updateCar(car: Car) {
+        val uid = requireNotNull(auth.currentUser?.uid) { "Usuario no autenticado" }
+        require(car.id.isNotBlank()) { "Car ID vacío" }
+        val data = mapOf(
+            "brand" to car.brand, "model" to car.model,
+            "plate" to car.plate, "currentKm" to car.currentKm
+        )
+        carsRef(uid).document(car.id).set(data).await()
+    }
+
+    suspend fun deleteCar(carId: String) {
+        val uid = requireNotNull(auth.currentUser?.uid) { "Usuario no autenticado" }
+        carsRef(uid).document(carId).delete().await()
+    }
 }
+
