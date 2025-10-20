@@ -5,21 +5,25 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import com.example.migarage.ui.addcar.AddCarScreen
+import com.example.migarage.ui.cardetail.CarDetailScreen
 import com.example.migarage.ui.editcar.EditCarScreen
 import com.example.migarage.ui.home.HomeScreen
 import com.example.migarage.ui.signin.SignInScreen
-import androidx.navigation.NavType
 
 @Composable
 fun AppNav(nav: NavHostController) {
     NavHost(navController = nav, startDestination = Route.SignIn.path) {
+
         composable(Route.SignIn.path) {
-            SignInScreen(onSignedIn = {
-                nav.navigate(Route.Home.path) {
-                    popUpTo(Route.SignIn.path) { inclusive = true }
+            SignInScreen(
+                onSignedIn = {
+                    nav.navigate(Route.Home.path) {
+                        popUpTo(Route.SignIn.path) { inclusive = true }
+                    }
                 }
-            })
+            )
         }
 
         composable(Route.Home.path) {
@@ -30,8 +34,8 @@ fun AppNav(nav: NavHostController) {
                         popUpTo(Route.Home.path) { inclusive = true }
                     }
                 },
-                
-                onCarClick = { carId -> nav.navigate(Route.EditCar.build(carId)) }
+                // 👇 ahora abre DETALLE
+                onCarClick = { carId -> nav.navigate(Route.CarDetail.build(carId)) }
             )
         }
 
@@ -39,7 +43,20 @@ fun AppNav(nav: NavHostController) {
             AddCarScreen(onCarSaved = { nav.popBackStack(Route.Home.path, false) })
         }
 
+        // 🆕 Detalle solo lectura
+        composable(
+            route = Route.CarDetail.path,
+            arguments = listOf(navArgument("carId") { type = NavType.StringType })
+        ) { backStack ->
+            val carId = backStack.arguments?.getString("carId") ?: return@composable
+            CarDetailScreen(
+                carId = carId,
+                onBack = { nav.popBackStack() },
+                onEdit = { nav.navigate(Route.EditCar.build(carId)) }
+            )
+        }
 
+        // Editor existente
         composable(
             route = Route.EditCar.path,
             arguments = listOf(navArgument("carId") { type = NavType.StringType })
@@ -48,10 +65,7 @@ fun AppNav(nav: NavHostController) {
             EditCarScreen(
                 carId = carId,
                 onSaved = { nav.popBackStack() },
-                onDeleted = {
-                    // tras borrar, vuelve a home
-                    nav.popBackStack(Route.Home.path, false)
-                }
+                onDeleted = { nav.popBackStack(Route.Home.path, false) }
             )
         }
     }
