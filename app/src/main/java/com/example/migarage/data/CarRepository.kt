@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
+
 class CarRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance(),
@@ -110,4 +111,30 @@ class CarRepository(
         // intenta borrar imagen asociada (si existiera)
         runCatching { carImageRef(uid, carId).delete().await() }
     }
+
+    /** Actualiza datos del coche. Si [newImage] no es null, sube imagen y actualiza imageUrl. */
+    suspend fun updateCarWithOptionalImage(car: Car, newImage: Uri?) {
+        val uid = requireNotNull(auth.currentUser?.uid) { "Usuario no autenticado" }
+        require(car.id.isNotBlank()) { "Car ID vacío" }
+
+        var finalUrl = car.imageUrl
+
+        if (newImage != null) {
+            // mismo path que usamos al crear: users/<uid>/cars/<carId>.jpg
+            val ref = FirebaseStorage.getInstance()
+                .reference.child("users/$uid/cars/${car.id}.jpg")
+            ref.putFile(newImage).await()
+            finalUrl = ref.downloadUrl.await().toString()
+        }
+
+        val data = mapOf(
+            "brand" to car.brand,
+            "model" to car.model,
+            "plate" to car.plate,
+            "currentKm" to car.currentKm,
+            "imageUrl" to finalUrl
+        )
+        carsRef(uid).document(car.id).set(data).await()
+    }
+
 }
