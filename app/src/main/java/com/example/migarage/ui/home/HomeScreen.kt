@@ -1,7 +1,5 @@
 package com.example.migarage.ui.home
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,19 +21,17 @@ import com.example.migarage.model.Car
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
-import androidx.lifecycle.viewmodel.compose.viewModel
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onAddCar: (() -> Unit)? = null,
+    onLogout: (() -> Unit)? = null,
     vm: HomeViewModel = viewModel()
 ) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
-
     val gso = remember { GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build() }
     val gsc = remember { GoogleSignIn.getClient(context, gso) }
 
@@ -45,9 +41,13 @@ fun HomeScreen(
                 title = { Text("MiGarage") },
                 actions = {
                     IconButton(onClick = {
+                        // 1) Firebase sign out
                         auth.signOut()
-                        gsc.signOut()
-
+                        // 2) Google sign out y luego navegar a SignIn
+                        gsc.signOut().addOnCompleteListener {
+                            onLogout?.invoke()
+                        }
+                        // Si quieres también revocar acceso: gsc.revokeAccess()
                     }) {
                         Icon(Icons.Default.Logout, contentDescription = "Cerrar sesión")
                     }
@@ -65,6 +65,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(inner)
         ) {
+            // Cabecera usuario
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -81,7 +82,11 @@ fun HomeScreen(
                         modifier = Modifier.size(48.dp).clip(CircleShape)
                     )
                 } else {
-                    Image(imageVector = Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(48.dp))
+                    Icon(
+                        imageVector = Icons.Default.Logout,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp)
+                    )
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
@@ -90,9 +95,18 @@ fun HomeScreen(
                 }
             }
 
+            // Contenido
             when {
-                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                state.cars.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Aún no tienes coches. Pulsa + para añadir 🚗") }
+                state.loading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+                state.cars.isEmpty() -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Aún no tienes coches. Pulsa + para añadir 🚗")
+                    }
+                }
                 else -> {
                     LazyColumn(
                         Modifier
@@ -100,7 +114,9 @@ fun HomeScreen(
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(state.cars) { car -> CarCard(car) }
+                        items(state.cars) { car ->
+                            CarCard(car)
+                        }
                     }
                 }
             }
@@ -111,9 +127,7 @@ fun HomeScreen(
 @Composable
 private fun CarCard(car: Car) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { /* TODO: detalle/editar */ },
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(Modifier.padding(16.dp)) {
@@ -124,3 +138,4 @@ private fun CarCard(car: Car) {
         }
     }
 }
+

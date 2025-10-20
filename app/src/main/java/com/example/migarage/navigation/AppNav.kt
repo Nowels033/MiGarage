@@ -1,6 +1,5 @@
 package com.example.migarage.navigation
 
-
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -10,31 +9,34 @@ import com.example.migarage.ui.home.HomeScreen
 import com.example.migarage.ui.signin.SignInScreen
 
 @Composable
-fun AppNav(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = Route.SignIn.path) {
+fun AppNav(nav: NavHostController) {
+    NavHost(navController = nav, startDestination = Route.SignIn.path) {
 
-        // 🔵 Pantalla de inicio de sesión
         composable(Route.SignIn.path) {
-            SignInScreen(onSignedIn = {
-                navController.navigate(Route.Home.path) {
-                    popUpTo(Route.SignIn.path) { inclusive = true }
+            SignInScreen(
+                onSignedIn = {
+                    nav.navigate(Route.Home.path) {
+                        popUpTo(Route.SignIn.path) { inclusive = true }
+                    }
                 }
-            })
-        }
-
-        // 🔵 Pantalla principal (Home)
-        composable(Route.Home.path) {
-            HomeScreen(
-                onAddCar = { navController.navigate(Route.AddCar.path) } // 👈 aquí el botón “+”
             )
         }
 
-        // 🆕 Pantalla para añadir coche
+        composable(Route.Home.path) {
+            HomeScreen(
+                onAddCar = { nav.navigate(Route.AddCar.path) },
+                onLogout = {
+                    nav.navigate(Route.SignIn.path) {
+                        popUpTo(Route.Home.path) { inclusive = true } // limpia Home del stack
+                    }
+                }
+            )
+        }
+
         composable(Route.AddCar.path) {
             AddCarScreen(
                 onCarSaved = {
-                    // vuelve atrás después de guardar
-                    navController.popBackStack(Route.Home.path, inclusive = false)
+                    nav.popBackStack(Route.Home.path, inclusive = false)
                 }
             )
         }

@@ -27,7 +27,7 @@ class HomeViewModel(
     val state: StateFlow<HomeUiState> = _state
 
     init {
-        // Datos del usuario actual
+        // Datos del usuario
         val user = auth.currentUser
         _state.update {
             it.copy(
@@ -35,17 +35,11 @@ class HomeViewModel(
                 photoUrl = user?.photoUrl?.toString()
             )
         }
-
-        // Suscripción en tiempo real a los coches del usuario
+        // Suscripción a los coches en tiempo real (si hay usuario)
         viewModelScope.launch {
             repo.listenCars().collect { list ->
                 _state.update { st -> st.copy(cars = list, loading = false) }
             }
         }
-    }
-
-    // Opcional: para pruebas rápidas
-    fun addDemoCar() = viewModelScope.launch {
-        repo.addCar(Car(brand = "Toyota", model = "Corolla", plate = "1234-ABC", currentKm = 75210))
     }
 }
