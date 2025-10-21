@@ -29,4 +29,9 @@ class MaintenanceListViewModel(
             }
         }
     }
+
+    suspend fun delete(carId: String, maintId: String): Boolean = try {
+        repo.deleteMaintenance(carId, maintId)
+        true
+    } catch (_: Exception) { false }
 }

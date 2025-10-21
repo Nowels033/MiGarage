@@ -14,9 +14,12 @@ import com.example.migarage.navigation.Route
 import com.example.migarage.ui.theme.MiGarageTheme
 import com.google.firebase.auth.FirebaseAuth
 
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.example.migarage.notify.NotificationHelper.createChannels(applicationContext)
+
         setContent {
             MiGarageTheme {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {

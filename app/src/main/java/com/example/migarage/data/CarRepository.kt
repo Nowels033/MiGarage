@@ -218,6 +218,21 @@ class CarRepository(
         val uid = requireNotNull(auth.currentUser?.uid)
         maintRef(uid, carId).document(maintId).delete().await()
     }
+    suspend fun addMaintenanceReturnId(
+        carId: String,
+        m: com.example.migarage.model.Maintenance
+    ): String {
+        val uid = requireNotNull(auth.currentUser?.uid)
+        val data = mapOf(
+            "type" to m.type,
+            "dateMillis" to m.dateMillis,
+            "km" to m.km,
+            "cost" to m.cost,
+            "notes" to m.notes
+        )
+        val ref = maintRef(uid, carId).add(data).await()
+        return ref.id
+    }
 
 
 }

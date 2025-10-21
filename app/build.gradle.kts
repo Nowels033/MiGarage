@@ -87,6 +87,9 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
 
+    // app/build.gradle.kts
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
 
     implementation("androidx.compose.foundation:foundation")
 
