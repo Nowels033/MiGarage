@@ -1,6 +1,5 @@
 package com.example.migarage.ui.maintenance
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -8,14 +7,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.*
+
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.migarage.notify.ReminderScheduler
+import com.example.migarage.ui.components.DateField
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +24,7 @@ fun AddEditMaintenanceScreen(
     onDone: () -> Unit,
     vm: AddEditMaintenanceViewModel = viewModel()
 ) {
+    // Helpers/estado general
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -36,13 +36,10 @@ fun AddEditMaintenanceScreen(
     var cost by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var isBusy by remember { mutableStateOf(false) }
-    var showDate by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var remind by remember { mutableStateOf(false) } // toggle recordatorio
 
-    // Toggle del recordatorio (por fecha)
-    var remind by remember { mutableStateOf(false) }
-
-    // Cargar datos si es edición
+    // Carga de datos si edita
     LaunchedEffect(maintId) {
         if (isEdit) {
             isBusy = true
@@ -52,17 +49,16 @@ fun AddEditMaintenanceScreen(
                 km = it.km.toString()
                 cost = if (it.cost == 0.0) "" else it.cost.toString()
                 notes = it.notes
-                // heurística: si la fecha es futura, activamos el toggle por defecto
                 remind = it.dateMillis > System.currentTimeMillis()
             }
             isBusy = false
         }
     }
 
-    val fmt = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
-
     Scaffold(
-        topBar = { TopAppBar(title = { Text(if (isEdit) "Editar mantenimiento" else "Nuevo mantenimiento") }) },
+        topBar = {
+            TopAppBar(title = { Text(if (isEdit) "Editar mantenimiento" else "Nuevo mantenimiento") })
+        },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { inner ->
         Box(Modifier.fillMaxSize().padding(inner)) {
@@ -76,17 +72,15 @@ fun AddEditMaintenanceScreen(
                     singleLine = true,
                     enabled = !isBusy
                 )
+
                 Spacer(Modifier.height(8.dp))
 
-                // Fecha (readOnly, abre DatePicker)
-                OutlinedTextField(
-                    value = fmt.format(Date(dateMillis)),
-                    onValueChange = {},
-                    label = { Text("Fecha") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = !isBusy) { showDate = true },
-                    readOnly = true,
+                // Fecha con calendario desplegable (Material 3 DatePicker en diálogo)
+                DateField(
+                    label = "Fecha",
+                    valueMillis = dateMillis,
+                    onChange = { newMillis -> dateMillis = newMillis },
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !isBusy
                 )
 
@@ -112,6 +106,7 @@ fun AddEditMaintenanceScreen(
                     singleLine = true,
                     enabled = !isBusy
                 )
+
                 Spacer(Modifier.height(8.dp))
 
                 // Coste
@@ -126,6 +121,7 @@ fun AddEditMaintenanceScreen(
                     singleLine = true,
                     enabled = !isBusy
                 )
+
                 Spacer(Modifier.height(8.dp))
 
                 // Notas
@@ -165,8 +161,7 @@ fun AddEditMaintenanceScreen(
                                     if (r) {
                                         if (remind) {
                                             ReminderScheduler.schedule(
-                                                context,
-                                                carId, maintId,
+                                                context, carId, maintId,
                                                 dateMillisAtNine(dateMillis),
                                                 "Mantenimiento: $type",
                                                 "Hoy toca $type del coche"
@@ -177,15 +172,13 @@ fun AddEditMaintenanceScreen(
                                     }
                                     r
                                 } else {
-                                    // Crear y obtener el id para programar recordatorio
                                     val createdId = vm.saveNewReturnId(
                                         carId, type, dateMillis, km.toInt(),
                                         cost.toDoubleOrNull() ?: 0.0, notes
                                     )
                                     if (createdId != null && remind) {
                                         ReminderScheduler.schedule(
-                                            context,
-                                            carId, createdId,
+                                            context, carId, createdId,
                                             dateMillisAtNine(dateMillis),
                                             "Mantenimiento: $type",
                                             "Hoy toca $type del coche"
@@ -225,51 +218,33 @@ fun AddEditMaintenanceScreen(
         }
     }
 
-    // DatePickerDialog con fix:
-    if (showDate) {
-        val state = rememberDatePickerState(
-            initialSelectedDateMillis = dateMillis // precarga la fecha actual del formulario
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDate = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    // SI NO seleccionan nada, mantiene la fecha anterior
-                    val selected = state.selectedDateMillis ?: dateMillis
-                    dateMillis = selected
-                    showDate = false
-                }) { Text("Aceptar") }
-            },
-            dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancelar") } }
-        ) {
-            DatePicker(state = state)
-        }
-    }
-
     // Confirmación de borrado
     if (confirmDelete && maintId != null) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Eliminar mantenimiento") },
-            text = { Text("¿Seguro que quieres eliminar este mantenimiento?") },
+            text  = { Text("¿Seguro que quieres eliminar este mantenimiento?") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     isBusy = true
+                    val id = maintId
                     scope.launch {
-                        val ok = vm.delete(carId, maintId)
-                        if (ok) ReminderScheduler.cancel(context, carId, maintId)
+                        val ok = vm.delete(carId, id)
+                        if (ok) ReminderScheduler.cancel(context, carId, id)
                         isBusy = false
                         if (ok) onDone() else snackbar.showSnackbar("No se pudo eliminar")
                     }
                 }) { Text("Eliminar") }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancelar") } }
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("Cancelar") }
+            }
         )
     }
 }
 
-// Pone la hora a las 09:00 locales para que el aviso no llegue de madrugada
+// Ajusta a las 09:00 locales para que la notificación no llegue de madrugada
 private fun dateMillisAtNine(dayMillis: Long): Long {
     val cal = Calendar.getInstance().apply { timeInMillis = dayMillis }
     cal.set(Calendar.HOUR_OF_DAY, 9)
@@ -278,3 +253,4 @@ private fun dateMillisAtNine(dayMillis: Long): Long {
     cal.set(Calendar.MILLISECOND, 0)
     return cal.timeInMillis
 }
+
