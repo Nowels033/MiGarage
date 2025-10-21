@@ -10,6 +10,9 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.channels.awaitClose
+
+
 
 
 class CarRepository(
@@ -136,5 +139,85 @@ class CarRepository(
         )
         carsRef(uid).document(car.id).set(data).await()
     }
+    // --- MANTENIMIENTOS (subcolección) ---
+// Ref: users/{uid}/cars/{carId}/maintenances
+    private fun maintRef(uid: String, carId: String) =
+        db.collection("users").document(uid).collection("cars")
+            .document(carId).collection("maintenances")
+
+    fun listenMaintenances(carId: String): kotlinx.coroutines.flow.Flow<List<com.example.migarage.model.Maintenance>> =
+        kotlinx.coroutines.flow.callbackFlow {
+            val uid = auth.currentUser?.uid
+            if (uid == null) { trySend(emptyList()); close(); return@callbackFlow }
+
+            val reg = maintRef(uid, carId)
+                .orderBy("dateMillis", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .addSnapshotListener { snap, err ->
+                    if (err != null) { trySend(emptyList()); return@addSnapshotListener }
+                    val list = snap?.documents?.map { d ->
+                        com.example.migarage.model.Maintenance(
+                            id = d.id,
+                            type = d.getString("type") ?: "",
+                            dateMillis = d.getLong("dateMillis") ?: 0L,
+                            km = (d.getLong("km") ?: 0L).toInt(),
+                            cost = d.getDouble("cost") ?: 0.0,
+                            notes = d.getString("notes") ?: ""
+                        )
+                    } ?: emptyList()
+                    trySend(list)
+                }
+            awaitClose { reg.remove() }
+
+        }
+
+    suspend fun addMaintenance(
+        carId: String,
+        m: com.example.migarage.model.Maintenance
+    ) {
+        val uid = requireNotNull(auth.currentUser?.uid)
+        val data = mapOf(
+            "type" to m.type,
+            "dateMillis" to m.dateMillis,
+            "km" to m.km,
+            "cost" to m.cost,
+            "notes" to m.notes
+        )
+        maintRef(uid, carId).add(data).await()
+    }
+
+    suspend fun getMaintenance(carId: String, maintId: String): com.example.migarage.model.Maintenance? {
+        val uid = requireNotNull(auth.currentUser?.uid)
+        val doc = maintRef(uid, carId).document(maintId).get().await()
+        return if (doc.exists()) com.example.migarage.model.Maintenance(
+            id = doc.id,
+            type = doc.getString("type") ?: "",
+            dateMillis = doc.getLong("dateMillis") ?: 0L,
+            km = (doc.getLong("km") ?: 0L).toInt(),
+            cost = doc.getDouble("cost") ?: 0.0,
+            notes = doc.getString("notes") ?: ""
+        ) else null
+    }
+
+    suspend fun updateMaintenance(
+        carId: String,
+        m: com.example.migarage.model.Maintenance
+    ) {
+        val uid = requireNotNull(auth.currentUser?.uid)
+        require(m.id.isNotBlank())
+        val data = mapOf(
+            "type" to m.type,
+            "dateMillis" to m.dateMillis,
+            "km" to m.km,
+            "cost" to m.cost,
+            "notes" to m.notes
+        )
+        maintRef(uid, carId).document(m.id).set(data).await()
+    }
+
+    suspend fun deleteMaintenance(carId: String, maintId: String) {
+        val uid = requireNotNull(auth.currentUser?.uid)
+        maintRef(uid, carId).document(maintId).delete().await()
+    }
+
 
 }

@@ -1,6 +1,5 @@
 package com.example.migarage.ui.cardetail
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -22,6 +21,7 @@ fun CarDetailScreen(
     carId: String,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onMaint: () -> Unit,           // 👈 NUEVO: ir a mantenimientos
     vm: CarDetailViewModel = viewModel()
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -46,7 +46,7 @@ fun CarDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = onEdit, enabled = car != null) {
-                        Icon(Icons.Filled.Edit, contentDescription = "Editar Coche")
+                        Icon(Icons.Filled.Edit, contentDescription = "Editar")
                     }
                 }
             )
@@ -101,6 +101,12 @@ fun CarDetailScreen(
                         DetailRow(label = "Modelo", value = car!!.model)
                         DetailRow(label = "Matrícula", value = car!!.plate)
                         DetailRow(label = "Kilómetros", value = "%,d".format(car!!.currentKm))
+
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = onMaint,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Mantenimientos") }
                     }
                 }
             }
